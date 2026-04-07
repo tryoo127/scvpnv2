@@ -21,9 +21,6 @@ date
 mkdir -p /usr/local/etc/xray/
 touch /usr/local/etc/xray/akunxtr.conf
 
-# CHECK VERSION XRAY CORE
-latest_version="$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases | grep tag_name | sed -E 's/.*"v(.*)".*/\1/' | head -n 1)"
-
 # Installation Xray Core
 bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install
 
