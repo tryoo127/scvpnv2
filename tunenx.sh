@@ -134,6 +134,8 @@ clear
 echo -e "\e[1;32mTune Nginx & Xray config DONE!\e[0m"
 sleep 2
 
+rm -f /root/tunenx.sh
+
 else
     echo "Error config! Please check."
     exit 1
