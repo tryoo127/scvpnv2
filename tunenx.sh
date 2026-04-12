@@ -12,12 +12,17 @@ command -v nginx >/dev/null 2>&1 || {
 
 NOW=$(date +%F-%H%M%S)
 
-echo "Backup config..."
+#Backup config
+echo -e "\e[1;32mBackup config...\e[0m"
+sleep 2
+
 mkdir -p /root/backup-nginx
 cp /etc/nginx/nginx.conf /root/backup-nginx/nginx.conf.bak.$NOW 2>/dev/null
 cp /etc/nginx/conf.d/xray.conf /root/backup-nginx/xray.conf.bak.$NOW 2>/dev/null
 
-echo "Set nginx.conf..."
+#Backup config
+echo -e "\e[1;32mSet Nginx config...\e[0m"
+sleep 2
 
 cat > /etc/nginx/nginx.conf << 'EOF'
 user www-data;
@@ -68,7 +73,9 @@ http {
 }
 EOF
 
-echo "Set xray.conf..."
+#Set Xray config
+echo -e "\e[1;32mSet Xray config...\e[0m"
+sleep 2
 
 mkdir -p /etc/nginx/conf.d
 
@@ -113,12 +120,20 @@ server {
     }
 }
 EOF
+clear
 
-echo "Test nginx config..."
+
+echo "Test Nginx config..."
 if nginx -t; then
-    echo "Restart nginx..."
-    systemctl restart nginx
-    echo "Nginx + Xray config DONE!"
+echo "Restart Nginx..."
+systemctl restart nginx
+sleep 2
+clear
+
+#Set Xray config
+echo -e "\e[1;32mTune Nginx & Xray config DONE!\e[0m"
+sleep 2
+
 else
     echo "Error config! Please check."
     exit 1
