@@ -20,7 +20,7 @@ mkdir -p /root/backup-nginx
 cp /etc/nginx/nginx.conf /root/backup-nginx/nginx.conf.bak.$NOW 2>/dev/null
 cp /etc/nginx/conf.d/xray.conf /root/backup-nginx/xray.conf.bak.$NOW 2>/dev/null
 
-#Backup config
+#Set nginx config
 echo -e "\e[1;32mSet Nginx config...\e[0m"
 sleep 2
 
@@ -73,7 +73,7 @@ http {
 }
 EOF
 
-#Set Xray config
+#Set xray config
 echo -e "\e[1;32mSet Xray config...\e[0m"
 sleep 2
 
@@ -120,23 +120,47 @@ server {
     }
 }
 EOF
+
 clear
 
+#TCP BBR Optimization
+echo -e "\e[1;32mSet TCP BBR Optimization...\e[0m"
+sleep 2
+
+cat > /etc/sysctl.d/99-tunenx.conf << 'EOF'
+net.core.default_qdisc=fq
+net.ipv4.tcp_congestion_control=bbrplus
+net.ipv4.tcp_fastopen=3
+net.ipv4.tcp_mtu_probing=1
+net.ipv4.tcp_syncookies=1
+net.ipv4.tcp_low_latency=1
+net.ipv4.tcp_no_metrics_save=1
+net.core.rmem_max=16777216
+net.core.wmem_max=16777216
+net.ipv4.tcp_rmem=4096 87380 16777216
+net.ipv4.tcp_wmem=4096 65536 16777216
+net.core.netdev_max_backlog=16384
+vm.swappiness=10
+vm.vfs_cache_pressure=50
+EOF
+
+if ! sysctl net.ipv4.tcp_available_congestion_control | grep -q bbrplus; then
+  echo "BBRPLUS not available, fallback to BBR"
+  sed -i 's/bbrplus/bbr/g' /etc/sysctl.d/99-tunenx.conf
+fi
+
+#Apply sysctl
+sysctl -p /etc/sysctl.d/99-tunenx.conf
+sleep 2
 
 echo "Test Nginx config..."
 if nginx -t; then
-echo "Restart Nginx..."
-systemctl restart nginx
-sleep 2
-clear
-
-#Set Xray config
-echo -e "\e[1;32mTune Nginx & Xray config DONE!\e[0m"
-sleep 2
-
-rm -f /root/tunenx.sh
-
+  echo "Restart Nginx..."
+  systemctl restart nginx
+  sleep 2
+  clear
+  echo -e "\e[1;32mTune Nginx & Xray config DONE!\e[0m"
 else
-    echo "Error config! Please check."
-    exit 1
+  echo "Error config! Please check."
+  exit 1
 fi
