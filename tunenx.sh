@@ -153,14 +153,40 @@ fi
 sysctl -p /etc/sysctl.d/99-tunenx.conf
 sleep 2
 
+#SSH Port Optimization
+echo -e "\e[1;32mSet SSH ports...\e[0m"
+sleep 2
+
+mkdir -p /root/backup-ssh
+cp /etc/ssh/sshd_config /root/backup-ssh/sshd_config.bak.$NOW 2>/dev/null
+
+sed -i '/^[#[:space:]]*Port /d' /etc/ssh/sshd_config
+
+cat >> /etc/ssh/sshd_config << 'EOF'
+Port 2026
+Port 6202
+EOF
+
+if sshd -t; then
+  systemctl restart ssh || systemctl restart sshd
+  echo -e "\e[1;32mSSH ports updated to 2026 & 6202\e[0m"
+else
+  echo "SSH config error! Restoring backup..."
+  cp /root/backup-ssh/sshd_config.bak.$NOW /etc/ssh/sshd_config
+  exit 1
+fi
+
 echo "Test Nginx config..."
 if nginx -t; then
   echo "Restart Nginx..."
   systemctl restart nginx
   sleep 2
   clear
-  echo -e "\e[1;32mTune Nginx & Xray config DONE!\e[0m"
+  echo -e "\e[1;32mTune Nginx, Xray, TCP & SSH config DONE!\e[0m"
 else
   echo "Error config! Please check."
   exit 1
 fi
+
+rm -f tunenx.sh
+reboot
