@@ -319,7 +319,7 @@ else
   exit 1
 fi
 
-rm -f tunenx
+rm -f tunenx.sh
 
 echo
 echo "Available congestion control : $AVAILABLE_CC"
