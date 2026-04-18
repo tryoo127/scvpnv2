@@ -212,7 +212,7 @@ else
   echo -e "\e[1;33mIRQBalance not installed, skip\e[0m"
 fi
 
-# TCP BBR / BBRplus Optimization
+# TCP BBR / BBRplus Optimization (FORCE APPLY)
 echo -e "\e[1;32mSet TCP Optimization...\e[0m"
 sleep 1
 
@@ -225,6 +225,9 @@ elif echo "$AVAILABLE_CC" | grep -qw bbr; then
 else
   CC_MODE=""
 fi
+
+rm -f /etc/sysctl.d/99-tunenx.conf
+rm -f /etc/sysctl.d/99-bbr.conf
 
 : > /etc/sysctl.d/99-tunenx.conf
 
@@ -253,17 +256,34 @@ apply_sysctl_if_exists "kernel.numa_balancing" "0"
 
 if [ -n "$CC_MODE" ]; then
   echo "net.ipv4.tcp_congestion_control=$CC_MODE" >> /etc/sysctl.d/99-tunenx.conf
-  echo -e "\e[1;32mDetected congestion control: $CC_MODE\e[0m"
+
+  sed -i '/^[[:space:]]*net\.ipv4\.tcp_congestion_control[[:space:]]*=/d' /etc/sysctl.conf 2>/dev/null || true
+  echo "net.ipv4.tcp_congestion_control=$CC_MODE" >> /etc/sysctl.conf
+
+  echo -e "\e[1;32mDetected & forcing congestion control: $CC_MODE\e[0m"
 else
-  echo -e "\e[1;33mBBR / BBRplus not available on this kernel. Skip congestion control setting.\e[0m"
+  echo -e "\e[1;33mBBR / BBRplus not available, keep default.\e[0m"
 fi
 
 sysctl --system >/dev/null 2>&1 || sysctl -p /etc/sysctl.d/99-tunenx.conf || true
+
+if [ -n "$CC_MODE" ]; then
+  sysctl -w net.ipv4.tcp_congestion_control="$CC_MODE" >/dev/null 2>&1 || true
+fi
+
 sleep 1
 
 CURRENT_CC="$(sysctl -n net.ipv4.tcp_congestion_control 2>/dev/null || true)"
 echo -e "\e[1;32mAvailable CC:\e[0m $AVAILABLE_CC"
 echo -e "\e[1;32mCurrent active CC:\e[0m $CURRENT_CC"
+
+if [ -n "$CC_MODE" ]; then
+  if [ "$CURRENT_CC" = "$CC_MODE" ]; then
+    echo -e "\e[1;32mCongestion control applied successfully\e[0m"
+  else
+    echo -e "\e[1;31mWARNING: Failed to apply $CC_MODE, current is $CURRENT_CC\e[0m"
+  fi
+fi
 
 # CREATE & TUNE SWAP
 echo -e "\e[1;32mSetup Swap...\e[0m"
